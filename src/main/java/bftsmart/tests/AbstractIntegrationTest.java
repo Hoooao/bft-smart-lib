@@ -2,7 +2,6 @@ package bftsmart.tests;
 
 import bftsmart.tests.util.ProcessExecutor;
 import controller.BenchmarkControllerStartup;
-
 import java.io.File;
 import java.util.Map;
 import java.util.Properties;

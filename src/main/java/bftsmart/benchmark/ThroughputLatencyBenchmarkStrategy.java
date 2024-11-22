@@ -73,11 +73,10 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 		useHashedResponse = Boolean.parseBoolean(benchmarkParameters.getProperty("experiment.use_hashed_response"));
 		String hostFile = benchmarkParameters.getProperty("experiment.hosts.file");
 		measureResources = Boolean.parseBoolean(benchmarkParameters.getProperty("experiment.measure_resources"));
-
+		int nRequests = Integer.parseInt(benchmarkParameters.getProperty("experiment.req_per_client"));
 		int nServerWorkers = 3 * f + 1;
 		int nClientWorkers = workers.length - nServerWorkers;
 		int maxClientsPerProcess = 30;
-		int nRequests = 10_000_000;
 		int sleepBetweenRounds = 10;
 		int[] clientsPerRound = new int[tokens.length];
 		for (int i = 0; i < tokens.length; i++) {
