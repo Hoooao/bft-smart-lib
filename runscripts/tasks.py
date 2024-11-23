@@ -59,6 +59,7 @@ def benchmark_config(config_f, controller_ip, worker_num = 5):
         # this is req per cli threads,  not process.
         f.write("experiment.req_per_client = 5000\n")
         f.write("experiment.data_size = 0\n")
+        f.write("experiment.interval = 0\n")
         f.write("experiment.is_write = true\n")
         f.write("experiment.use_hashed_response=false\n")
         f.write("experiment.hosts.file=./config/hosts.config\n")
@@ -115,13 +116,15 @@ def local(c):
     local_hosts_config(4,f"{build_path}/config/hosts.config")
     with c.cd(build_path):
         c.run("pwd")
+        c.run("rm ./config/currentView", warn=True)
         print("Starting controller...")
-        arun(f"./smartrun.sh controller.BenchmarkControllerStartup ./config/benchmark.config &> controller.log")
+        hdl = arun(f"./smartrun.sh controller.BenchmarkControllerStartup ./config/benchmark.config &> controller.log")
         time.sleep(3)
         print("Starting workers...")
         for i in range(worker_num):
             arun(f"./smartrun.sh worker.WorkerStartup {local_ip} {base_port_cli} &> worker{i}.log")
-
+        print("Wait till finish...")
+        hdl.join()
 
 @task
 def gcloud_killall_java(c):

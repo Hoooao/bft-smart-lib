@@ -31,6 +31,13 @@ public class ThroughputEventProcessor implements IWorkerEventProcessor {
 
 	@Override
 	public void process(String line) {
+		// Hao: smart uses an overcomplicated way to log, so annoy, just use this
+		// to print the server and client profile
+		String serverProfile = "serverProfile";
+		String clientProfile = "clientProfile";
+		if (line.contains(serverProfile) || line.contains(clientProfile)) {
+			System.out.println(line);
+		}
 		if (!isReady) {
 			if (line.contains(SERVER_READY_PATTERN)) {
 				isReady = true;

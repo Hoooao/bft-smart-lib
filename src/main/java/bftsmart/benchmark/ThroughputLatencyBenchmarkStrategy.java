@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import util.Storage;
 import worker.IProcessingResult;
 import worker.ProcessInformation;
+import controller.BenchmarkController;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -55,8 +56,9 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 		this.sleepCondition = lock.newCondition();
 		String initialCommand = "java -Xmx28g -Djava.security.properties=./config/java" +
 				".security -Dlogback.configurationFile=./config/logback.xml -cp lib/* ";
-		this.serverCommand = initialCommand + "bftsmart.benchmark.ThroughputLatencyServer ";
-		this.clientCommand = initialCommand + "bftsmart.benchmark.ThroughputLatencyClient ";
+		// Hao: we use the server and cli in microbenchmarks cuz they can use signature.
+		this.serverCommand = initialCommand + "bftsmart.demo.microbenchmarks.ThroughputLatencyServer ";
+		this.clientCommand = initialCommand + "bftsmart.demo.microbenchmarks.ThroughputLatencyClient ";
 		this.sarCommand = "sar -u -r -n DEV 1";
 		this.serverWorkersIds = new HashSet<>();
 		this.clientWorkersIds = new HashSet<>();
@@ -74,6 +76,7 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 		String hostFile = benchmarkParameters.getProperty("experiment.hosts.file");
 		measureResources = Boolean.parseBoolean(benchmarkParameters.getProperty("experiment.measure_resources"));
 		int nRequests = Integer.parseInt(benchmarkParameters.getProperty("experiment.req_per_client"));
+		int interval = Integer.parseInt(benchmarkParameters.getProperty("experiment.interval"));
 		int nServerWorkers = 3 * f + 1;
 		int nClientWorkers = workers.length - nServerWorkers;
 		int maxClientsPerProcess = 30;
@@ -133,7 +136,7 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 				startServers(dataSize, nServerWorkers, serverWorkers);
 
 				//Start clients
-				startClients(nServerWorkers, maxClientsPerProcess, nRequests, dataSize, isWrite,
+				startClients(nServerWorkers, maxClientsPerProcess, nRequests, dataSize, interval, isWrite,
 						clientWorkers, clientsPerWorker);
 
 				//Wait for system to stabilize
@@ -199,13 +202,14 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 	}
 
 	private void getMeasurements() throws InterruptedException {
+		//Hao: we don't really do measurements here,keep this to make the code work..
 		//Start measurements
 		logger.debug("Starting measurements...");
 		measurementWorkers.values().forEach(WorkerHandler::startProcessing);
 
 		//Wait for measurements
-		logger.info("Measuring during 120s");
-		sleepSeconds(120);
+		//logger.info("Measuring during 20s");
+		//sleepSeconds(0);
 
 		//Stop measurements
 		measurementWorkers.values().forEach(WorkerHandler::stopProcessing);
@@ -230,7 +234,7 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 	}
 
 	private void startClients(int nServerWorkers, int maxClientsPerProcess, int nRequests,
-							  int dataSize, boolean isWrite, WorkerHandler[] clientWorkers,
+							  int dataSize, int interval, boolean isWrite, WorkerHandler[] clientWorkers,
 							  int[] clientsPerWorker) throws InterruptedException {
 		logger.info("Starting clients...");
 		clientsReadyCounter = new CountDownLatch(clientsPerWorker.length);
@@ -249,9 +253,16 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 
 			for (int j = 0; j < nProcesses; j++) {
 				int clientsPerProcess = Math.min(totalClientsPerWorker, maxClientsPerProcess);
+				// This is for cli in /benchmark
+				// String command = clientCommand + clientInitialId + " " + clientsPerProcess
+				// 		+ " " + nRequests + " " + dataSize + " " + isWrite + " " + useHashedResponse + " "
+				// 		+ isMeasurementWorker;
+				// This is for cli in microbenchmarks
+				boolean read_only = !isWrite;
+				boolean verbose = false;
 				String command = clientCommand + clientInitialId + " " + clientsPerProcess
-						+ " " + nRequests + " " + dataSize + " " + isWrite + " " + useHashedResponse + " "
-						+ isMeasurementWorker;
+						+ " " + nRequests + " " + dataSize + " " +interval+ " " + read_only + " " + verbose + " "
+						+ "default";
 				commands[j] = new ProcessInformation(command, ".");
 				totalClientsPerWorker -= clientsPerProcess;
 				clientInitialId += clientsPerProcess;
@@ -272,7 +283,16 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 		if (measureResources)
 			measurementWorkers.put(serverWorkers[1].getWorkerId(), serverWorkers[1]);
 		for (int i = 0; i < serverWorkers.length; i++) {
-			String command = serverCommand + i + " " + dataSize;
+			// for benchmark server
+			// String command = serverCommand + i + " " + dataSize;
+			// for microbenchmarks server
+			// hardcode some config here...
+			int measurement_interval = 500;
+			int replySize = dataSize;
+			int stateSize = dataSize;
+			boolean context = true;
+			String sig = "default";
+			String command = serverCommand + i + " " + measurement_interval + " " + replySize + " " + stateSize + " " + context + " " + sig;
 			int nCommands = measureResources && i < 2 ? 2 : 1;
 			ProcessInformation[] commands = new ProcessInformation[nCommands];
 			commands[0] = new ProcessInformation(command, ".");
