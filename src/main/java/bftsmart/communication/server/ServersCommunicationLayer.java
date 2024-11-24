@@ -92,11 +92,16 @@ public class ServersCommunicationLayer extends Thread {
 			confAddress =
 					controller.getStaticConf().getRemoteAddress(controller.getStaticConf().getProcessId()).getAddress().getHostAddress();
 		} catch (Exception e) {
-			// Now look what went wrong ...
-			logger.debug(" ####### Debugging at setting up the Communication layer ");
-			logger.debug("my Id is " + controller.getStaticConf().getProcessId()
-					+ " my remote Address is  " + controller.getStaticConf().getRemoteAddress(controller.getStaticConf().getProcessId()));
+		// 	// Now look what went wrong ...
+		// 	logger.debug(" ####### Debugging at setting up the Communication layer ");
+		// 	logger.debug("my Id is " + controller.getStaticConf().getProcessId()
+		// 			+ " my remote Address is  " + controller.getStaticConf().getRemoteAddress(controller.getStaticConf().getProcessId()));
 		}
+		// Now look what went wrong ...
+		logger.debug(" ####### Debugging at setting up the Communication layer ");
+		logger.debug("my Id is " + controller.getStaticConf().getProcessId()
+				+ " my remote Address is  " + controller.getStaticConf().getRemoteAddress(controller.getStaticConf().getProcessId()));
+	
 
 		if (InetAddress.getLoopbackAddress().getHostAddress().equals(confAddress)) {
 			myAddress = InetAddress.getLoopbackAddress().getHostAddress();
@@ -130,6 +135,8 @@ public class ServersCommunicationLayer extends Thread {
 		context.init(kmf.getKeyManagers(), trustMgrFactory.getTrustManagers(), new SecureRandom());
 
 		SSLServerSocketFactory serverSocketFactory = context.getServerSocketFactory();
+		logger.debug("MyPort: {}" , myPort);
+		logger.debug("MyAddress: {}" , myAddress);
 		this.serverSocketSSLTLS = (SSLServerSocket) serverSocketFactory.createServerSocket(myPort, 100,
 				InetAddress.getByName(myAddress));
 
