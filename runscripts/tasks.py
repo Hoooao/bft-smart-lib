@@ -61,7 +61,7 @@ def benchmark_config(config_f, controller_ip, worker_num = 5):
         f.write("controller.worker.processor = bftsmart.benchmark.ThroughputEventProcessor\n")
         # will automatically set 4 replicas
         f.write("experiment.f = 1\n")
-        f.write("experiment.clients_per_round = 2\n")
+        f.write("experiment.clients_per_round = 1600\n")
         # this is req per cli threads,  not process.
         f.write("experiment.req_per_client = 5000\n")
         f.write("experiment.data_size = 0\n")
@@ -78,8 +78,7 @@ def gcloud_build(c, install_java = False):
     group = ThreadingGroup(*ext_ips)
 
     # install java
-    if install_java:
-        group.run("sudo apt-get update && sudo apt-get install -y default-jre")
+    group.run("sudo apt-get update && sudo apt-get install -y default-jre")
     print("Cloning/building repo...")
 
     group.run("git clone https://github.com/Hoooao/bft-smart-lib.git smart_bft", warn=True)
@@ -92,13 +91,13 @@ def gcloud_run(c):
     ext_ips = get_gcloud_ext_ips(c)
     controller_ip = ext_ips[0]
     workers_ips = ext_ips[1:]
-    worker_per_node = 3
-    rep_per_node = 2
+    worker_per_node = 1
+    rep_node = 4
+    rep_per_rep_node = 1
     controller_conn = Connection(controller_ip)
     worker_group = ThreadingGroup(*workers_ips)
     print("Controller IP: ", controller_ip)
-    gcloud_hosts_config(workers_ips, rep_per_node)
-    # 4 replicas, 1 client
+    gcloud_hosts_config(workers_ips[:rep_node], rep_per_rep_node)
     benchmark_config(benchmark_config_path, "0.0.0.0", len(workers_ips) * worker_per_node)
 
     # Hao: smart seems uses synced sending/receiving on cli, so in its paper
@@ -119,16 +118,30 @@ def gcloud_run(c):
     print("Starting workers...")
     worker_group.run(f"killall -9 java && cd ~/smart_bft_artifacts && rm config/currentView", warn=True)
     #worker_group.run(f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> worker.log")
-
-    for i in range(rep_per_node):
-        print(f"Starting rep {i} on each machine...")
-        threading.Thread(target=worker_group.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> server{i}.log",)).start()
-        i += 1
+    server_group = ThreadingGroup(*workers_ips[:rep_node])
+    cli_group = ThreadingGroup(*workers_ips[rep_node:])
+    # Hao: smart does not take care of how to assign roles. it just assign the first x to server, the rest to cli
+    # we need to force them to be registered in controller in desired order
+    for ip in workers_ips[:rep_node]:
+        print(f"Starting rep worker on {ip}...")
+        ip_conn = Connection(ip)
+        threading.Thread(target=ip_conn.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> server.log",)).start()
+        time.sleep(4)
     time.sleep(5)   
-    for i in range(worker_per_node - rep_per_node):
-        print(f"Starting cli {i} on each machine...")
-        threading.Thread(target=worker_group.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> client{i}.log",)).start()
-        i += 1
+    for ip in workers_ips[rep_node:]:
+        print(f"Starting cli worker on {ip}...")
+        ip_conn = Connection(ip)
+        threading.Thread(target=ip_conn.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> client.log",)).start()
+        time.sleep(4)
+    # for i in range(rep_per_rep_node):
+    #     print(f"Starting rep {i} on machine...")
+    #     threading.Thread(target=server_group.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> server{i}.log",)).start()
+    #     i += 1
+    # time.sleep(10)   
+    # for i in range(rep_per_rep_node):
+    #     print(f"Starting cli {i} on machine...")
+    #     threading.Thread(target=cli_group.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> client{i}.log",)).start()
+    #     i += 1
     
 @task
 def local(c):

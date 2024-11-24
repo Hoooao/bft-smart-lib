@@ -58,7 +58,7 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 				".security -Dlogback.configurationFile=./config/logback.xml -cp lib/* ";
 		// Hao: we use the server and cli in microbenchmarks cuz they can use signature.
 		this.serverCommand = initialCommand + "bftsmart.demo.microbenchmarks.ThroughputLatencyServer ";
-		this.clientCommand = initialCommand + "bftsmart.demo.microbenchmarks.ThroughputLatencyClient ";
+		this.clientCommand = initialCommand + "bftsmart.demo.microbenchmarks.AsyncLatencyClient ";
 		this.sarCommand = "sar -u -r -n DEV 1";
 		this.serverWorkersIds = new HashSet<>();
 		this.clientWorkersIds = new HashSet<>();

@@ -49,15 +49,15 @@
 
 	<logger name="io.netty" level="OFF"/>
 
-	<logger name="bftsmart" level="TRACE"/>
+	<logger name="bftsmart" level="INFO"/>
 
-	<logger name="bftsmart.proxy" level="TRACE"/>
+	<logger name="bftsmart.proxy" level="INFO"/>
 
-	<logger name="benchmark.controller" level="TRACE"/>
+	<logger name="benchmark.controller" level="INFO"/>
 
-	<logger name="benchmark.worker" level="TRACE"/>
-	<logger name="benchmarking" level="TRACE"/>
-	<logger name="benchmark.worker.process" level="TRACE"/>
+	<logger name="benchmark.worker" level="INFO"/>
+	<logger name="benchmarking" level="INFO"/>
+	<logger name="benchmark.worker.process" level="WARN"/>
 
 	<!-- SPECIFIC CLASS LOGS -->
 	<!--
