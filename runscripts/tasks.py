@@ -79,8 +79,9 @@ def gcloud_build(c, install_java = False):
     ext_ips = get_gcloud_ext_ips(c)
     group = ThreadingGroup(*ext_ips)
 
-    # install java
-    group.run("sudo apt-get update && sudo apt-get install -y default-jre")
+    if install_java:
+        # install java
+        group.run("sudo apt-get update && sudo apt-get install -y default-jre")
     print("Cloning/building repo...")
 
     group.run("git clone https://github.com/Hoooao/bft-smart-lib.git smart_bft", warn=True)
