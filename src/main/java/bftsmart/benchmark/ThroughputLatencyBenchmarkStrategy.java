@@ -57,6 +57,7 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 		String initialCommand = "java -Xmx28g -Djava.security.properties=./config/java" +
 				".security -Dlogback.configurationFile=./config/logback.xml -cp lib/* ";
 		// Hao: we use the server and cli in microbenchmarks cuz they can use signature.
+		// More importantly, hotstuff use these as baseline (the non-async version tho)
 		this.serverCommand = initialCommand + "bftsmart.demo.microbenchmarks.ThroughputLatencyServer ";
 		this.clientCommand = initialCommand + "bftsmart.demo.microbenchmarks.AsyncLatencyClient ";
 		this.sarCommand = "sar -u -r -n DEV 1";
@@ -287,11 +288,12 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 			// String command = serverCommand + i + " " + dataSize;
 			// for microbenchmarks server
 			// hardcode some config here...
-			int measurement_interval = 500;
+			int measurement_interval = 1000;
 			int replySize = dataSize;
 			int stateSize = dataSize;
 			boolean context = true;
-			String sig = "default";
+			// 
+			String sig = "ecdsa";
 			String command = serverCommand + i + " " + measurement_interval + " " + replySize + " " + stateSize + " " + context + " " + sig;
 			int nCommands = measureResources && i < 2 ? 2 : 1;
 			ProcessInformation[] commands = new ProcessInformation[nCommands];

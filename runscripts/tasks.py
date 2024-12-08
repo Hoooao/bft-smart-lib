@@ -16,14 +16,14 @@ log_config_path = "../config/logback.xml"
 base_port_cli = 11000
 base_port_rep = 11001
 
-def get_gcloud_ext_ips(c):
+def get_gcloud_ext_ips(c, keyword=None):
     # parse gcloud CLI to get internalIP -> externalIP mapping    
     gcloud_output = c.run("gcloud compute instances list").stdout.splitlines()[1:]
     gcloud_output = map(lambda s: s.split(), gcloud_output)
     ext_ips = [
         # internal ip and external ip are last 2 tokens in each line
         line[-2]
-        for line in gcloud_output if line[-1] == "RUNNING"
+        for line in gcloud_output if line[-1] == "RUNNING" and (keyword==None or keyword in line[0])
     ]
     print("External IPs: ", ext_ips)
     return ext_ips
@@ -61,11 +61,13 @@ def benchmark_config(config_f, controller_ip, worker_num = 5):
         f.write("controller.worker.processor = bftsmart.benchmark.ThroughputEventProcessor\n")
         # will automatically set 4 replicas
         f.write("experiment.f = 1\n")
-        f.write("experiment.clients_per_round = 1600\n")
+        # for repeat tests
+        f.write("experiment.clients_per_round = 500\n")
         # this is req per cli threads,  not process.
         f.write("experiment.req_per_client = 5000\n")
         f.write("experiment.data_size = 0\n")
         f.write("experiment.interval = 0\n")
+        # try both f/t, readonly can use unordered delivery
         f.write("experiment.is_write = true\n")
         f.write("experiment.use_hashed_response=false\n")
         f.write("experiment.hosts.file=./config/hosts.config\n")
@@ -87,13 +89,13 @@ def gcloud_build(c, install_java = False):
     group.run("cp -r smart_bft/build/install/library ~/smart_bft_artifacts")
 
 @task
-def gcloud_run(c):
-    ext_ips = get_gcloud_ext_ips(c)
-    controller_ip = ext_ips[0]
-    workers_ips = ext_ips[1:]
-    worker_per_node = 1
+def gcloud_run(c, colocate = False):
+    controller_ip = get_gcloud_ext_ips(c, "proxy")[0]
+    workers_ips = get_gcloud_ext_ips(c, "replica")
+    worker_per_node = 2
     rep_node = 4
     rep_per_rep_node = 1
+    cli_per_node = 1
     controller_conn = Connection(controller_ip)
     worker_group = ThreadingGroup(*workers_ips)
     print("Controller IP: ", controller_ip)
@@ -102,6 +104,7 @@ def gcloud_run(c):
 
     # Hao: smart seems uses synced sending/receiving on cli, so in its paper
     # it spawned 400 clis(threads, not processes in benchmark/) on each machine..
+    # Note: hotstuff uses the microbench mark one,not the async one, so we should do it as well
     print("Running BFT-Smart...")
     print("Starting controller..")
     controller_conn.put(hosts_config_path)
@@ -118,30 +121,38 @@ def gcloud_run(c):
     print("Starting workers...")
     worker_group.run(f"killall -9 java && cd ~/smart_bft_artifacts && rm config/currentView", warn=True)
     #worker_group.run(f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> worker.log")
-    server_group = ThreadingGroup(*workers_ips[:rep_node])
-    cli_group = ThreadingGroup(*workers_ips[rep_node:])
+    # server_group = ThreadingGroup(*workers_ips[:rep_node])
+    # cli_group = ThreadingGroup(*workers_ips[rep_node:])
+
     # Hao: smart does not take care of how to assign roles. it just assign the first x to server, the rest to cli
     # we need to force them to be registered in controller in desired order
-    for ip in workers_ips[:rep_node]:
-        print(f"Starting rep worker on {ip}...")
-        ip_conn = Connection(ip)
-        threading.Thread(target=ip_conn.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> server.log",)).start()
-        time.sleep(4)
-    time.sleep(5)   
-    for ip in workers_ips[rep_node:]:
-        print(f"Starting cli worker on {ip}...")
-        ip_conn = Connection(ip)
-        threading.Thread(target=ip_conn.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> client.log",)).start()
-        time.sleep(4)
-    # for i in range(rep_per_rep_node):
-    #     print(f"Starting rep {i} on machine...")
-    #     threading.Thread(target=server_group.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> server{i}.log",)).start()
-    #     i += 1
-    # time.sleep(10)   
-    # for i in range(rep_per_rep_node):
-    #     print(f"Starting cli {i} on machine...")
-    #     threading.Thread(target=cli_group.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> client{i}.log",)).start()
-    #     i += 1
+
+    
+    if colocate:
+        # colocate tests:
+        for i in range(rep_per_rep_node):
+            print(f"Starting rep {i} on machine...")
+            threading.Thread(target=worker_group.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> server{i}.log",)).start()
+            i += 1
+        time.sleep(10)   
+        for i in range(cli_per_node):
+            print(f"Starting cli {i} on machine...")
+            threading.Thread(target=worker_group.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> client{i}.log",)).start()
+            i += 1
+    else:
+        # This is for non-colocate tests
+        for ip in workers_ips[:rep_node]:
+            print(f"Starting rep worker on {ip}...")
+            ip_conn = Connection(ip)
+            threading.Thread(target=ip_conn.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> server.log",)).start()
+            time.sleep(4)
+        time.sleep(5)   
+        for ip in workers_ips[rep_node:]:
+            print(f"Starting cli worker on {ip}...")
+            ip_conn = Connection(ip)
+            threading.Thread(target=ip_conn.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> client.log",)).start()
+            time.sleep(4)
+        
     
 @task
 def local(c):

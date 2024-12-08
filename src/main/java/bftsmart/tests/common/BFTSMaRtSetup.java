@@ -72,7 +72,7 @@ public class BFTSMaRtSetup implements ISetupWorker {
 		ctx.append("system.servers.f = ").append(f).append("\n");
 		ctx.append("system.totalordermulticast.timeout = 30000\n");
 		ctx.append("system.totalordermulticast.batchtimeout = -1\n");
-		ctx.append("system.totalordermulticast.maxbatchsize = 1024\n");
+		ctx.append("system.totalordermulticast.maxbatchsize = 400\n");
 		ctx.append("system.totalordermulticast.maxBatchSizeInBytes = 100000000\n");
 		ctx.append("system.communication.useControlFlow = 1000\n");
 		ctx.append("system.communication.maxRequestSize = 1000000\n");
@@ -81,10 +81,10 @@ public class BFTSMaRtSetup implements ISetupWorker {
 		ctx.append("system.totalordermulticast.verifyTimestamps = false\n");
 		ctx.append("system.communication.inQueueSize = 500000\n");
 		ctx.append("system.communication.outQueueSize = 500000\n");
-		ctx.append("system.communication.useSignatures = 0\n");
+		ctx.append("system.communication.useSignatures = 1\n");
 		ctx.append("system.shutdownhook = true\n");
 		ctx.append("system.samebatchsize = false\n");
-		ctx.append("system.numrepliers = 16\n");
+		ctx.append("system.numrepliers = 8\n");
 		ctx.append("system.totalordermulticast.state_transfer = true\n");
 		ctx.append("system.totalordermulticast.highMark = 10000\n");
 		ctx.append("system.totalordermulticast.revival_highMark = 10\n");
