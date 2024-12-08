@@ -132,14 +132,18 @@ def gcloud_run(c, colocate = False):
     if colocate:
         # colocate tests:
         for i in range(rep_per_rep_node):
-            print(f"Starting rep {i} on machine...")
-            threading.Thread(target=worker_group.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> server{i}.log",)).start()
-            i += 1
-        time.sleep(10)   
+            for ip in workers_ips:
+                print(f"Starting rep {i} on machine {ip}...")
+                ip_conn = Connection(ip)
+                threading.Thread(target=ip_conn.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> server{i}.log",)).start()
+                time.sleep(4)
+        time.sleep(6)   
         for i in range(cli_per_node):
-            print(f"Starting cli {i} on machine...")
-            threading.Thread(target=worker_group.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> client{i}.log",)).start()
-            i += 1
+            for ip in workers_ips:
+                print(f"Starting cli {i} on machine {ip}...")
+                ip_conn = Connection(ip)
+                threading.Thread(target=worker_group.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> client{i}.log",)).start()
+
     else:
         # This is for non-colocate tests
         for ip in workers_ips[:rep_node]:

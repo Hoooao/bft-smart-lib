@@ -59,7 +59,7 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 		// Hao: we use the server and cli in microbenchmarks cuz they can use signature.
 		// More importantly, hotstuff use these as baseline (the non-async version tho)
 		this.serverCommand = initialCommand + "bftsmart.demo.microbenchmarks.ThroughputLatencyServer ";
-		this.clientCommand = initialCommand + "bftsmart.demo.microbenchmarks.AsyncLatencyClient ";
+		this.clientCommand = initialCommand + "bftsmart.demo.microbenchmarks.ThroughputLatencyClient ";
 		this.sarCommand = "sar -u -r -n DEV 1";
 		this.serverWorkersIds = new HashSet<>();
 		this.clientWorkersIds = new HashSet<>();
@@ -263,7 +263,7 @@ public class ThroughputLatencyBenchmarkStrategy implements IBenchmarkStrategy, I
 				boolean verbose = false;
 				String command = clientCommand + clientInitialId + " " + clientsPerProcess
 						+ " " + nRequests + " " + dataSize + " " +interval+ " " + read_only + " " + verbose + " "
-						+ "default";
+						+ "ecdsa";
 				commands[j] = new ProcessInformation(command, ".");
 				totalClientsPerWorker -= clientsPerProcess;
 				clientInitialId += clientsPerProcess;
