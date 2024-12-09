@@ -81,7 +81,7 @@ public class BFTSMaRtSetup implements ISetupWorker {
 		ctx.append("system.totalordermulticast.verifyTimestamps = false\n");
 		ctx.append("system.communication.inQueueSize = 500000\n");
 		ctx.append("system.communication.outQueueSize = 500000\n");
-		ctx.append("system.communication.useSignatures = 0\n");
+		ctx.append("system.communication.useSignatures = 1\n");
 		ctx.append("system.shutdownhook = true\n");
 		ctx.append("system.samebatchsize = false\n");
 		ctx.append("system.numrepliers = 8\n");
