@@ -55,9 +55,9 @@
 
 	<logger name="benchmark.controller" level="INFO"/>
 
-	<logger name="benchmark.worker" level="INFO"/>
-	<logger name="benchmarking" level="INFO"/>
-	<logger name="benchmark.worker.process" level="WARN"/>
+	<logger name="benchmark.worker" level="TRACE"/>
+	<logger name="benchmarking" level="TRACE"/>
+	<logger name="benchmark.worker.process" level="TRACE"/>
 
 	<!-- SPECIFIC CLASS LOGS -->
 	<!--
