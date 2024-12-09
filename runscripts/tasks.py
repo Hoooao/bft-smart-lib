@@ -64,7 +64,7 @@ def benchmark_config(config_f, controller_ip, worker_num = 5):
         # for repeat tests
         f.write("experiment.clients_per_round = 500\n")
         # this is req per cli threads,  not process.
-        f.write("experiment.req_per_client = 5000\n")
+        f.write("experiment.req_per_client = 100\n")
         f.write("experiment.data_size = 0\n")
         f.write("experiment.interval = 0\n")
         # try both f/t, readonly can use unordered delivery
@@ -92,15 +92,17 @@ def gcloud_build(c, install_java = False):
 @task
 def gcloud_run(c, colocate = False):
     controller_ip = get_gcloud_ext_ips(c, "proxy")[0]
-    workers_ips = get_gcloud_ext_ips(c, "replica")
-    worker_per_node = 2
+    replica_ips = get_gcloud_ext_ips(c, "replica")
+    client_ips = get_gcloud_ext_ips(c, "client")
+    workers_ips = replica_ips + client_ips
+    worker_per_node = 1
     rep_node = 4
     rep_per_rep_node = 1
     cli_per_node = 1
     controller_conn = Connection(controller_ip)
     worker_group = ThreadingGroup(*workers_ips)
     print("Controller IP: ", controller_ip)
-    gcloud_hosts_config(workers_ips[:rep_node], rep_per_rep_node)
+    gcloud_hosts_config(replica_ips, rep_per_rep_node)
     benchmark_config(benchmark_config_path, "0.0.0.0", len(workers_ips) * worker_per_node)
 
     # Hao: smart seems uses synced sending/receiving on cli, so in its paper
@@ -146,13 +148,13 @@ def gcloud_run(c, colocate = False):
 
     else:
         # This is for non-colocate tests
-        for ip in workers_ips[:rep_node]:
+        for ip in replica_ips:
             print(f"Starting rep worker on {ip}...")
             ip_conn = Connection(ip)
             threading.Thread(target=ip_conn.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> server.log",)).start()
             time.sleep(4)
         time.sleep(5)   
-        for ip in workers_ips[rep_node:]:
+        for ip in client_ips:
             print(f"Starting cli worker on {ip}...")
             ip_conn = Connection(ip)
             threading.Thread(target=ip_conn.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> client.log",)).start()

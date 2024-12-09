@@ -247,7 +247,7 @@ public final class ThroughputLatencyServer extends DefaultRecoverable{
 
             } else {
             
-           
+                System.out.println("serverProfile: --- (Read-only) Should not be shown ---");
                 consensusLatency.store(0);
                 preConsLatency.store(0);
                 posConsLatency.store(0);            
