@@ -125,7 +125,7 @@ public final class ThroughputLatencyServer extends DefaultRecoverable{
     public byte[][] appExecuteBatch(byte[][] commands, MessageContext[] msgCtxs, boolean fromConsensus) {
         
         batchSize.store(commands.length);
-        System.out.println("serverProfile: --- (Batch)  iterations: "+ iterations + " // regency: " + msgCtxs[0].getRegency() + " // consensus: " + msgCtxs[0].getConsensusId() + " ---");
+        //System.out.println("serverProfile: --- (Batch)  iterations: "+ iterations + " // regency: " + msgCtxs[0].getRegency() + " // consensus: " + msgCtxs[0].getConsensusId() + " ---");
         byte[][] replies = new byte[commands.length][];
         
         for (int i = 0; i < commands.length; i++) {
