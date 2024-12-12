@@ -61,10 +61,10 @@ def benchmark_config(config_f, controller_ip, worker_num = 5):
         f.write("controller.worker.processor = bftsmart.benchmark.ThroughputEventProcessor\n")
         # will automatically set 4 replicas
         f.write("experiment.f = 1\n")
-        # for repeat tests
-        f.write("experiment.clients_per_round = 500\n")
+        # num of cli in total, can use array for repeat tests
+        f.write("experiment.clients_per_round = 900\n")
         # this is req per cli threads,  not process.
-        f.write("experiment.req_per_client = 100\n")
+        f.write("experiment.req_per_client = 130\n")
         f.write("experiment.data_size = 0\n")
         f.write("experiment.interval = 0\n")
         # try both f/t, readonly can use unordered delivery
@@ -88,21 +88,9 @@ def gcloud_build(c, install_java = False):
     group.run("cd smart_bft && git pull && ./gradlew installDist")
     group.run("rm -rf ~/smart_bft_artifacts", warn=True)
     group.run("cp -r smart_bft/build/install/library ~/smart_bft_artifacts")
+
 @task
-def save_res(c, lable):
-    replica_ips = get_gcloud_ext_ips(c, "replica")
-    client_ips = get_gcloud_ext_ips(c, "client")
-    rep_group = ThreadingGroup(*replica_ips)
-    cli_group = ThreadingGroup(*client_ips)
-    # save the latencies and log in cli and rep to a file
-    cli_group.run(f"cd ~/smart_bft_artifacts && cat latencies_*.txt > latencies_{lable}.txt && mv server.log server_{lable}.log", warn=True)
-    rep_group.run(f"cd ~/smart_bft_artifacts && mv server.log server_{lable}.log", warn=True)
-    cli_group.run(f"mkdir smart_{lable}_res", warn=True)
-    rep_group.run(f"mkdir smart_{lable}_res", warn=True)
-    cli_group.run(f"mv ~/smart_bft_artifacts/latencies_{lable}.txt ~/smart_{lable}_res/", warn=True)
-    rep_group.run(f"mv ~/smart_bft_artifacts/server_{lable}.log ~/smart_{lable}_res/", warn=True)
-@task
-def gcloud_run(c, colocate = False, lable = "default_name"):
+def gcloud_run(c, colocate = False, lable = None):
     controller_ip = get_gcloud_ext_ips(c, "proxy")[0]
     replica_ips = get_gcloud_ext_ips(c, "replica")
     client_ips = get_gcloud_ext_ips(c, "client")
@@ -171,6 +159,17 @@ def gcloud_run(c, colocate = False, lable = "default_name"):
             ip_conn = Connection(ip)
             threading.Thread(target=ip_conn.run, args = (f"cd ~/smart_bft_artifacts && ./smartrun.sh worker.WorkerStartup {controller_ip} {base_port_cli} &> client.log",)).start()
             time.sleep(4)
+
+    if lable is not None:
+        rep_group = ThreadingGroup(*replica_ips)
+        cli_group = ThreadingGroup(*client_ips)
+        # save the latencies and log in cli and rep to a file
+        cli_group.run(f"cd ~/smart_bft_artifacts && cat latencies_*.txt > latencies_{lable}.txt", warn=True)
+        rep_group.run(f"cd ~/smart_bft_artifacts && mv server.log server_{lable}.log", warn=True)
+        cli_group.run(f"mkdir smart_{lable}_res", warn=True)
+        rep_group.run(f"mkdir smart_{lable}_res", warn=True)
+        cli_group.run(f"mv ~/smart_bft_artifacts/latencies_{lable}.txt ~/smart_{lable}_res/", warn=True)
+        rep_group.run(f"mv ~/smart_bft_artifacts/server_{lable}.log ~/smart_{lable}_res/", warn=True)
 
     
 @task
