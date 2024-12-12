@@ -27,7 +27,7 @@ public class BFTSMaRtSetup implements ISetupWorker {
 		String hosts = args[2];
 		//Hao: the trategy does not have the 4th arg
 		//String isUnorderedRequestEnabled = args[3];
-		String isUnorderedRequestEnabled = "true";
+		String isUnorderedRequestEnabled = "false";
 		int nServers = (isBFT ? 3*f+1 : 2*f+1);
 
 		logger.debug("Creating hosts.config");

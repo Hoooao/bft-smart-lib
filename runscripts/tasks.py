@@ -62,13 +62,13 @@ def benchmark_config(config_f, controller_ip, worker_num = 5):
         # will automatically set 4 replicas
         f.write("experiment.f = 1\n")
         # for repeat tests
-        f.write("experiment.clients_per_round = 1000\n")
+        f.write("experiment.clients_per_round = 3200\n")
         # this is req per cli threads,  not process.
         f.write("experiment.req_per_client = 1000\n")
         f.write("experiment.data_size = 0\n")
         f.write("experiment.interval = 0\n")
         # try both f/t, readonly can use unordered delivery
-        f.write("experiment.is_write = false\n")
+        f.write("experiment.is_write = true\n")
         f.write("experiment.use_hashed_response=false\n")
         f.write("experiment.hosts.file=./config/hosts.config\n")
         f.write("experiment.measure_resources=false\n")
